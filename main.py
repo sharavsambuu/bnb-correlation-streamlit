@@ -52,10 +52,55 @@ def fetch_latest(symbol, interval, limit=1000):
     return df[['Open', 'High', 'Low', 'Close', 'Volume']]
 
 def fetch_all(symbol, interval):
-    df  = fetch_latest(symbol=symbol, interval=interval)
+    csv_file = f"./data/crypto_history/{symbol.lower()}-{interval}.csv"
+    df = None
+    if not os.path.exists(csv_file):
+        print(f"caching {symbol.lower()}")
+        today = dt.date.today()
+
+        before_01 = str(today - dt.timedelta(days=5))
+        before_00 = str(today - dt.timedelta(days=50))
+
+        before_11 = str(today - dt.timedelta(days=45))
+        before_10 = str(today - dt.timedelta(days=90))
+
+        before_21 = str(today - dt.timedelta(days=85))
+        before_20 = str(today - dt.timedelta(days=130))
+
+        before_31 = str(today - dt.timedelta(days=125))
+        before_30 = str(today - dt.timedelta(days=170))
+
+        before_41 = str(today - dt.timedelta(days=165))
+        before_40 = str(today - dt.timedelta(days=210))
+
+        before_51 = str(today - dt.timedelta(days=205))
+        before_50 = str(today - dt.timedelta(days=250))
+
+        before_61 = str(today - dt.timedelta(days=245))
+        before_60 = str(today - dt.timedelta(days=290))
+
+        df0 = fetch_history(symbol=symbol, interval=interval, start_dt=before_00, end_dt=before_01)
+        df1 = fetch_history(symbol=symbol, interval=interval, start_dt=before_10, end_dt=before_11)
+        df2 = fetch_history(symbol=symbol, interval=interval, start_dt=before_20, end_dt=before_21)
+        df3 = fetch_history(symbol=symbol, interval=interval, start_dt=before_30, end_dt=before_31)
+        df4 = fetch_history(symbol=symbol, interval=interval, start_dt=before_40, end_dt=before_41)
+        df5 = fetch_history(symbol=symbol, interval=interval, start_dt=before_50, end_dt=before_51)
+        df6 = fetch_history(symbol=symbol, interval=interval, start_dt=before_60, end_dt=before_61)
+
+        df = pd.concat([df0, df1, df2, df3, df4, df5, df6])
+        df = df[~df.index.duplicated(keep='last')]
+        df = df.dropna()
+    else:
+        df = pd.read_csv(csv_file, parse_dates=True, index_col=0)
+
+    df_  = fetch_latest(symbol=symbol, interval=interval)
+
+    df = pd.concat([df, df_])
     df = df[~df.index.duplicated(keep='last')]
     df = df.dropna()
     df = df.sort_index()
+    df = df.iloc[-10000:]
+    df.to_csv(csv_file, index=True, header=True)
 
     return df
 
@@ -116,11 +161,13 @@ def main():
 
     col01, col02, col03 = st.columns(3)
     with col01:
-        hours = st.number_input('Correlation by hours', value=168)
+        heatmap_window = st.number_input("Heatmap plotting window", value=5000)
     with col02:
-        heatmap_window = st.number_input("Heatmap plotting window", value=100)
+        hours = st.number_input('Correlation by hours', value=120)
     with col03:
-        show_datetime = st.checkbox('Show datetime', value=True)
+        show_datetime = st.checkbox('Show datetime', value=False)
+        days  = round(hours/24.0, 2)
+        st.text(f"{days} days")
 
     corr_window = 2*hours;
     corr_df     = pd.DataFrame(index=all_df.index)
